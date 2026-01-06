@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GateOS: Mission Control</title>
+    <style>
+        :root {
+            --bg-dark: #0f172a;
+            --bg-card: #1e293b;
+            --bg-hover: #334155;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --accent-primary: #3b82f6;
+            --accent-ee: #f59e0b;
+            --accent-da: #8b5cf6;
+            --accent-danger: #ef4444;
+            --accent-success: #10b981;
+            --border: #334155;
+        }
+        
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .content {
+            scrollbar-gutter: stable; 
+        }
+
+        ::-webkit-scrollbar { width: 10px; }
+        ::-webkit-scrollbar-track { background: var(--bg-dark); }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 5px; border: 2px solid var(--bg-dark); }
+        ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
+        header {
+            background-color: var(--bg-card);
+            padding: 1rem 2rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            height: 70px;
+            flex-shrink: 0;
+        }
+
+        .brand {
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--accent-primary);
+            letter-spacing: -0.05em;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .brand span { color: white; }
+        .version { 
+            font-size: 0.75rem; 
+            background: var(--bg-dark); 
+            padding: 2px 6px; 
+            border-radius: 4px; 
+            color: var(--text-muted); 
+            font-weight: normal;
+            letter-spacing: 0;
+            margin-left: 0.5rem;
+        }
+
+        .timer-container { text-align: right; }
+        .timer {
+            font-family: monospace;
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--accent-danger);
+            letter-spacing: -1px;
+        }
+        .timer-label { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+
+        main {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+
+        aside {
+            width: 260px;
+            background-color: var(--bg-card);
+            border-right: 1px solid var(--border);
+            padding: 1.5rem 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            flex-shrink: 0;
+        }
+
+        .nav-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            padding: 0.75rem 1rem;
+            text-align: left;
+            cursor: pointer;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            font-size: 0.95rem;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .nav-btn:hover { background-color: var(--bg-hover); color: var(--text-main); }
+        .nav-btn.active { background-color: var(--accent-primary); color: white; }
+
+        .content {
+            flex: 1;
+            padding: 2rem;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .view { display: none; max-width: 1100px; margin: 0 auto; padding-bottom: 4rem; }
+        .view.active { display: block; animation: fadeIn 0.2s ease-out; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .card {
+            background-color: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            position: relative;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .progress-circle {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background: conic-gradient(var(--color) var(--pct), var(--bg-dark) 0deg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        
+        .progress-circle::after {
+            content: '';
+            position: absolute;
+            width: 84px;
+            height: 84px;
+            background-color: var(--bg-card);
+            border-radius: 50%;
+        }
+
+        .progress-val { position: absolute; font-size: 1.25rem; font-weight: 800; z-index: 1; }
+
+        .subject-group {
+            margin-bottom: 1rem;
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            background: var(--bg-card);
+            overflow: hidden;
+        }
+
+        .subject-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            cursor: pointer;
+            background: transparent;
+            transition: background 0.2s;
+        }
+
+        .subject-header:hover { background: rgba(255,255,255,0.03); }
+
+        .topic-list {
+            display: none;
+            padding: 1rem;
+            border-top: 1px solid var(--border);
+            background: rgba(0,0,0,0.1);
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 0.5rem;
+        }
+
+        .subject-group.expanded .topic-list { display: grid; }
+
+        .topic-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+            padding: 0.5rem;
+            border-radius: 0.25rem;
+            transition: background 0.2s;
+        }
+
+        .topic-item:hover { background: rgba(255,255,255,0.05); }
+
+        input[type="checkbox"] {
+            appearance: none;
+            width: 1.2rem;
+            height: 1.2rem;
+            border: 2px solid var(--border);
+            background: var(--bg-dark);
+            border-radius: 4px;
+            margin-top: 0.15rem;
+            cursor: pointer;
+            flex-shrink: 0;
+            display: grid;
+            place-content: center;
+        }
+
+        input[type="checkbox"]:checked {
+            background-color: var(--accent-success);
+            border-color: var(--accent-success);
+        }
+
+        input[type="checkbox"]:checked::before {
+            content: "✓";
+            color: white;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        label { cursor: pointer; font-size: 0.95rem; line-height: 1.4; color: var(--text-main); }
+        .completed-text { color: var(--text-muted); text-decoration: line-through; opacity: 0.7; }
+
+        .badge {
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+        .badge.High { background: rgba(239, 68, 68, 0.15); color: var(--accent-danger); }
+        .badge.Mid { background: rgba(245, 158, 11, 0.15); color: var(--accent-ee); }
+        .badge.Low { background: rgba(100, 116, 139, 0.15); color: var(--text-muted); }
+
+        .sync-icon { margin-left: auto; opacity: 0.5; font-size: 0.8rem; }
+        .section-title { margin-bottom: 1.5rem; display: flex; align-items: center; gap: 1rem; }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="brand">
+            GATE<span>OS</span>
+            <span class="version">2026</span>
+        </div>
+        <div class="timer-container">
+            <div class="timer" id="countdown">00d 00h 00m</div>
+            <div class="timer-label">Deadline: Feb 10</div>
+        </div>
+    </header>
+
+    <main>
+        <aside>
+            <button class="nav-btn active" onclick="switchTab('dashboard')">
+                <span>📊</span> Mission Control
+            </button>
+            <button class="nav-btn" onclick="switchTab('overlap')">
+                <span style="color:var(--accent-success)">🔗</span> Overlap Zone
+            </button>
+            <div style="height:1px; background:var(--border); margin:0.5rem 0"></div>
+            <button class="nav-btn" onclick="switchTab('da-syllabus')">
+                <span style="color:var(--accent-da)">🧬</span> DA Syllabus
+            </button>
+            <button class="nav-btn" onclick="switchTab('ee-syllabus')">
+                <span style="color:var(--accent-ee)">⚡</span> EE Syllabus
+            </button>
+            <div style="margin-top:auto"></div>
+            <button class="nav-btn" onclick="resetProgress()" style="color:var(--accent-danger)">
+                <span>♻️</span> Reset Data
+            </button>
+        </aside>
+
+        <section class="content">
+            <div id="dashboard" class="view active">
+                <h2 class="section-title">Status Report</h2>
+                <div class="stats-grid">
+                    <div class="card" style="display:flex; align-items:center; gap:1.5rem; border-left: 4px solid var(--accent-da)">
+                        <div class="progress-circle" id="da-circle" style="--color: var(--accent-da); --pct: 0deg">
+                            <span class="progress-val" id="da-pct">0%</span>
+                        </div>
+                        <div>
+                            <h2 style="margin:0; color:var(--accent-da)">DA Paper</h2>
+                            <p style="margin:0.25rem 0; font-size:0.9rem; color:var(--text-muted)">Data Science & AI</p>
+                            <div class="badge High" id="da-high-badge">High Priority: 0%</div>
+                        </div>
+                    </div>
+                    <div class="card" style="display:flex; align-items:center; gap:1.5rem; border-left: 4px solid var(--accent-ee)">
+                        <div class="progress-circle" id="ee-circle" style="--color: var(--accent-ee); --pct: 0deg">
+                            <span class="progress-val" id="ee-pct">0%</span>
+                        </div>
+                        <div>
+                            <h2 style="margin:0; color:var(--accent-ee)">EE Paper</h2>
+                            <p style="margin:0.25rem 0; font-size:0.9rem; color:var(--text-muted)">Electrical Engineering</p>
+                            <div class="badge High" id="ee-high-badge">High Priority: 0%</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3 style="color:var(--text-muted); margin-top:0; font-size:0.8rem; text-transform:uppercase">Velocity Tracker</h3>
+                    <div style="display:flex; justify-content:space-between; align-items:end">
+                        <div style="font-size:2.5rem; font-weight:800" id="velocity">0.0</div>
+                        <div style="text-align:right; color:var(--text-muted); font-size:0.9rem">
+                            topics/day needed<br>to finish by Feb 10
+                        </div>
+                    </div>
+                    <div style="margin-top:1rem; height:6px; background:var(--bg-dark); border-radius:3px; overflow:hidden">
+                        <div id="velocity-bar" style="height:100%; width:0%; background:var(--accent-primary)"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="overlap" class="view">
+                <h2 class="section-title">Common Ground <span class="badge High">Critical Sync</span></h2>
+                <div class="card" style="margin-bottom:2rem">
+                    <p style="color:var(--text-muted); margin:0">
+                        Checking topics here automatically updates both DA and EE syllabi.
+                    </p>
+                </div>
+                <div id="overlap-container"></div>
+            </div>
+
+            <div id="da-syllabus" class="view">
+                <h2 class="section-title" style="color:var(--accent-da)">DA Syllabus Tracker</h2>
+                <div id="da-container"></div>
+            </div>
+            
+            <div id="ee-syllabus" class="view">
+                <h2 class="section-title" style="color:var(--accent-ee)">EE Syllabus Tracker</h2>
+                <div id="ee-container"></div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        const da_syllabus = {
+            "Probability and Statistics": {
+                "priority": "High",
+                "topics": [
+                    {name: "Counting (permutation and combinations)", sync_id: "math_counting"},
+                    {name: "Probability axioms", sync_id: "math_axioms"},
+                    {name: "Sample space, events", sync_id: "math_sample_space"},
+                    {name: "Independent events", sync_id: "math_indep"},
+                    {name: "Mutually exclusive events", sync_id: "math_mutual"},
+                    {name: "Marginal, conditional and joint probability", sync_id: "math_cond_prob"},
+                    {name: "Bayes Theorem", sync_id: "math_bayes"},
+                    {name: "Conditional expectation and variance", sync_id: null},
+                    {name: "Mean, median, mode and standard deviation", sync_id: "math_stats"},
+                    {name: "Correlation and covariance", sync_id: "math_corr"},
+                    {name: "Random variables", sync_id: "math_rv"},
+                    {name: "Discrete random variables and PMF", sync_id: "math_discrete"},
+                    {name: "Uniform, Bernoulli, Binomial distribution", sync_id: "math_dist_binom"},
+                    {name: "Continuous random variables and PDF", sync_id: "math_cont"},
+                    {name: "Uniform, Exponential, Poisson, Normal, Standard Normal", sync_id: "math_dist_norm"},
+                    {name: "t-distribution, chi-squared distributions", sync_id: null},
+                    {name: "Cumulative distribution function", sync_id: null},
+                    {name: "Conditional PDF", sync_id: null},
+                    {name: "Central limit theorem", sync_id: null},
+                    {name: "Confidence interval", sync_id: null},
+                    {name: "z-test, t-test, chi-squared test", sync_id: null}
+                ]
+            },
+            "Linear Algebra": {
+                "priority": "High",
+                "topics": [
+                    {name: "Vector space, subspaces", sync_id: null},
+                    {name: "Linear dependence and independence", sync_id: null},
+                    {name: "Matrices", sync_id: null},
+                    {name: "Projection matrix", sync_id: null},
+                    {name: "Orthogonal matrix", sync_id: null},
+                    {name: "Idempotent matrix", sync_id: null},
+                    {name: "Partition matrix", sync_id: null},
+                    {name: "Quadratic forms", sync_id: null},
+                    {name: "Systems of linear equations", sync_id: "math_linear_sys"},
+                    {name: "Gaussian elimination", sync_id: null},
+                    {name: "Eigenvalues and eigenvectors", sync_id: "math_eigen"},
+                    {name: "Determinant, rank, nullity", sync_id: null},
+                    {name: "Projections", sync_id: null},
+                    {name: "LU decomposition", sync_id: "math_lu"},
+                    {name: "Singular value decomposition", sync_id: null}
+                ]
+            },
+            "Calculus and Optimization": {
+                "priority": "Mid",
+                "topics": [
+                    {name: "Functions of a single variable", sync_id: null},
+                    {name: "Limit, continuity and differentiability", sync_id: "math_calc_basic"},
+                    {name: "Taylor series", sync_id: "math_taylor"},
+                    {name: "Maxima and minima", sync_id: "math_maxmin"},
+                    {name: "Optimization involving a single variable", sync_id: null}
+                ]
+            },
+            "Programming, DSA": {
+                "priority": "High",
+                "topics": ["Python", "Stacks/Queues", "Linked lists", "Trees/Hash tables", "Search/Sort", "Graph Theory", "BFS/DFS", "Shortest path"].map(n => ({name: n, sync_id: null}))
+            },
+            "DBMS": {
+                "priority": "Mid",
+                "topics": ["ER-model", "Relational Algebra", "SQL", "Normalization", "Indexing", "Data Warehousing"].map(n => ({name: n, sync_id: null}))
+            },
+            "Machine Learning": {
+                "priority": "High",
+                "topics": ["Regression", "k-NN/Naive Bayes", "SVM/Decision Trees", "Neural Networks", "Clustering", "PCA"].map(n => ({name: n, sync_id: null}))
+            },
+            "AI": {
+                "priority": "High",
+                "topics": ["Search Algorithms", "Logic", "Reasoning under uncertainty", "Bayesian Networks"].map(n => ({name: n, sync_id: null}))
+            }
+        };
+
+        const ee_syllabus = {
+            "Engineering Mathematics": {
+                "priority": "High",
+                "topics": [
+                    {name: "Matrix Algebra", sync_id: null},
+                    {name: "Systems of linear equations", sync_id: "math_linear_sys"},
+                    {name: "Eigenvalues and eigenvectors", sync_id: "math_eigen"},
+                    {name: "Calculus (Mean value, Integrals)", sync_id: null},
+                    {name: "Partial Derivatives", sync_id: "math_calc_basic"},
+                    {name: "Maxima and minima", sync_id: "math_maxmin"},
+                    {name: "Vector Calculus (Stokes, Gauss)", sync_id: null},
+                    {name: "Differential Equations", sync_id: null},
+                    {name: "Complex Variables", sync_id: null},
+                    {name: "Taylor series", sync_id: "math_taylor"},
+                    {name: "Probability: Sampling", sync_id: null},
+                    {name: "Conditional probability", sync_id: "math_cond_prob"},
+                    {name: "Mean, Median, Mode, SD", sync_id: "math_stats"},
+                    {name: "Random variables", sync_id: "math_rv"},
+                    {name: "Discrete/Continuous distributions", sync_id: "math_cont"},
+                    {name: "Poisson, Normal, Binomial", sync_id: "math_dist_binom"},
+                    {name: "Correlation/Regression", sync_id: "math_corr"}
+                ]
+            },
+            "Electric Circuits": { "priority": "Mid", "topics": ["Network Elements", "KCL/KVL/Mesh/Node", "Theorems", "Transient Response", "AC Analysis", "Resonance", "Three Phase", "Two Port"].map(n => ({name: n, sync_id: null})) },
+            "Electromagnetic Fields": { "priority": "Low", "topics": ["Coulomb/Gauss Law", "Biot-Savart/Ampere Law", "Maxwell Eqs", "Inductance/Capacitance"].map(n => ({name: n, sync_id: null})) },
+            "Signals and Systems": { "priority": "High", "topics": ["CT/DT Signals", "Fourier Series/Transform", "Laplace/Z-Transform", "Sampling Theorem"].map(n => ({name: n, sync_id: null})) },
+            "Electrical Machines": { "priority": "High", "topics": ["Transformers", "DC Machines", "Induction Machines", "Synchronous Machines"].map(n => ({name: n, sync_id: null})) },
+            "Power Systems": { "priority": "High", "topics": ["Transmission/Generation", "Load Flow", "Fault Analysis", "Stability", "Protection"].map(n => ({name: n, sync_id: null})) },
+            "Control Systems": { "priority": "High", "topics": ["Transfer Functions/Block Diag", "Time Response", "Stability (Routh/Nyquist)", "Bode/Root Locus", "PID Controllers"].map(n => ({name: n, sync_id: null})) },
+            "Measurements": { "priority": "Low", "topics": ["Bridges/Potentiometers", "Instrument Transformers", "Digital Meters", "Oscilloscopes"].map(n => ({name: n, sync_id: null})) },
+            "Analog/Digital Electronics": { "priority": "Mid", "topics": ["Diode Circuits", "Op-Amps", "Logic Gates/Families", "A/D D/A Converters"].map(n => ({name: n, sync_id: null})) },
+            "Power Electronics": { "priority": "High", "topics": ["Semiconductor Devices", "DC-DC Converters", "Rectifiers/Inverters"].map(n => ({name: n, sync_id: null})) }
+        };
+
+        const syllabusData = { "DA": da_syllabus, "EE": ee_syllabus };
+        const EXAM_DATE = new Date("2026-02-10T00:00:00").getTime();
+        let userProgress = JSON.parse(localStorage.getItem('gate_os_v3_progress')) || {};
+
+        function init() {
+            renderSyllabus('DA', 'da-container');
+            renderSyllabus('EE', 'ee-container');
+            renderOverlap();
+            startTimer();
+            updateStats();
+        }
+
+        function renderSyllabus(paper, containerId) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+            
+            const data = syllabusData[paper];
+            Object.keys(data).forEach(sectionName => {
+                const section = data[sectionName];
+                const sectionId = (paper + sectionName).replace(/[^a-zA-Z0-9]/g, '');
+                const topics = section.topics;
+                const completedCount = topics.filter((t, idx) => userProgress[`${paper}::${sectionName}::${idx}`]).length;
+                const progressPct = Math.round((completedCount / topics.length) * 100);
+
+                const topicHtml = topics.map((t, idx) => {
+                    const uniqueId = `${paper}::${sectionName}::${idx}`;
+                    const isChecked = userProgress[uniqueId] ? 'checked' : '';
+                    const textClass = isChecked ? 'completed-text' : '';
+                    const syncAttr = t.sync_id ? `data-sync="${t.sync_id}"` : '';
+                    
+                    return `
+                        <div class="topic-item">
+                            <input type="checkbox" id="${uniqueId}" ${isChecked} ${syncAttr} onchange="handleCheck(this, '${uniqueId}')">
+                            <label for="${uniqueId}" id="lbl-${uniqueId}" class="${textClass}">${t.name}</label>
+                            ${t.sync_id ? '<span class="sync-icon">🔗</span>' : ''}
+                        </div>
+                    `;
+                }).join('');
+
+                container.innerHTML += `
+                    <div class="subject-group" id="grp-${sectionId}">
+                        <div class="subject-header" onclick="toggleGroup('grp-${sectionId}')">
+                            <div style="display:flex; align-items:center; gap:0.75rem">
+                                <span class="badge ${section.priority}">${section.priority}</span>
+                                <b>${sectionName}</b>
+                            </div>
+                            <div style="display:flex; align-items:center; gap:1rem">
+                                <span style="font-size:0.8rem; color:var(--text-muted)" id="pct-${sectionId}">${progressPct}%</span>
+                            </div>
+                        </div>
+                        <div class="topic-list">
+                            ${topicHtml}
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function renderOverlap() {
+            const container = document.getElementById('overlap-container');
+            const commonTopics = [];
+            Object.keys(syllabusData['DA']).forEach(secName => {
+                syllabusData['DA'][secName].topics.forEach((t, idx) => {
+                    if (t.sync_id) commonTopics.push({name: t.name, sync_id: t.sync_id, daId: `DA::${secName}::${idx}`});
+                });
+            });
+
+            container.innerHTML = `
+                <div class="card">
+                    <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap:0.5rem">
+                        ${commonTopics.map(t => {
+                            const isChecked = userProgress[t.daId] ? 'checked' : '';
+                            const textClass = isChecked ? 'completed-text' : '';
+                            return `
+                                <div class="topic-item" style="background:var(--bg-hover)">
+                                    <input type="checkbox" id="ovl-${t.daId}" ${isChecked} data-sync="${t.sync_id}" onchange="handleCheck(this, '${t.daId}')">
+                                    <label for="ovl-${t.daId}" id="lbl-ovl-${t.daId}" class="${textClass}">${t.name}</label>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        function handleCheck(checkbox, id) {
+            const isChecked = checkbox.checked;
+            const syncId = checkbox.dataset.sync;
+            
+            updateState(id, isChecked);
+            updateSectionUI(id); // Update the section progress text immediately
+
+            if (syncId) {
+                const allSynced = document.querySelectorAll(`input[data-sync="${syncId}"]`);
+                allSynced.forEach(cb => {
+                    if (cb !== checkbox) {
+                        cb.checked = isChecked;
+                        const targetId = cb.id.replace('ovl-', '');
+                        updateState(targetId, isChecked);
+                        updateLabel(cb.id, isChecked);
+                        updateSectionUI(targetId); // Update the synchronized section too
+                    }
+                });
+            }
+            
+            updateLabel(checkbox.id, isChecked);
+            save();
+            updateStats();
+        }
+
+        function updateState(id, val) { if (val) userProgress[id] = true; else delete userProgress[id]; }
+        
+        function updateSectionUI(id) {
+            // ID format: Paper::SectionName::Idx
+            if (id.startsWith('ovl-')) return; // Overlap items don't belong to a section UI directly
+            const parts = id.split('::');
+            if(parts.length < 2) return;
+            
+            const paper = parts[0];
+            const secName = parts[1];
+            const sectionId = (paper + secName).replace(/[^a-zA-Z0-9]/g, '');
+            const el = document.getElementById(`pct-${sectionId}`);
+            
+            if(el) {
+                const section = syllabusData[paper][secName];
+                const total = section.topics.length;
+                let done = 0;
+                section.topics.forEach((t, i) => {
+                    if(userProgress[`${paper}::${secName}::${i}`]) done++;
+                });
+                el.innerText = Math.round((done/total)*100) + '%';
+            }
+        }
+
+        function updateLabel(elId, isChecked) {
+            const lbl = document.getElementById('lbl-' + elId);
+            if (lbl) {
+                if (isChecked) lbl.classList.add('completed-text');
+                else lbl.classList.remove('completed-text');
+            }
+        }
+
+        function save() { localStorage.setItem('gate_os_v3_progress', JSON.stringify(userProgress)); }
+        function toggleGroup(id) { document.getElementById(id).classList.toggle('expanded'); }
+        function switchTab(id) {
+            document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                if(btn.getAttribute('onclick').includes(id)) btn.classList.add('active');
+            });
+        }
+
+        function updateStats() {
+            const daStats = calcPaperStats('DA');
+            const eeStats = calcPaperStats('EE');
+            
+            document.getElementById('da-pct').innerText = daStats.pct + '%';
+            document.getElementById('da-circle').style.setProperty('--pct', (daStats.pct * 3.6) + 'deg');
+            document.getElementById('da-high-badge').innerText = `High Priority: ${daStats.highPct}%`;
+            
+            document.getElementById('ee-pct').innerText = eeStats.pct + '%';
+            document.getElementById('ee-circle').style.setProperty('--pct', (eeStats.pct * 3.6) + 'deg');
+            document.getElementById('ee-high-badge').innerText = `High Priority: ${eeStats.highPct}%`;
+
+            const totalLeft = daStats.remaining + eeStats.remaining;
+            const now = new Date().getTime();
+            const days = Math.max(1, (EXAM_DATE - now) / 86400000);
+            document.getElementById('velocity').innerText = (totalLeft / days).toFixed(1);
+        }
+
+        function calcPaperStats(paper) {
+            let total = 0, done = 0, highTotal = 0, highDone = 0;
+            const data = syllabusData[paper];
+            Object.keys(data).forEach(secName => {
+                const sec = data[secName];
+                sec.topics.forEach((t, idx) => {
+                    total++;
+                    if(sec.priority === 'High') highTotal++;
+                    if(userProgress[`${paper}::${secName}::${idx}`]) {
+                        done++;
+                        if(sec.priority === 'High') highDone++;
+                    }
+                });
+            });
+            return {
+                pct: total ? Math.round((done/total)*100) : 0,
+                highPct: highTotal ? Math.round((highDone/highTotal)*100) : 0,
+                remaining: total - done
+            };
+        }
+
+        function startTimer() {
+            setInterval(() => {
+                const diff = EXAM_DATE - new Date().getTime();
+                if(diff < 0) return;
+                const d = Math.floor(diff / 86400000);
+                const h = Math.floor((diff % 86400000) / 3600000);
+                const m = Math.floor((diff % 3600000) / 60000);
+                document.getElementById('countdown').innerText = `${d}d ${h}h ${m}m`;
+            }, 1000);
+        }
+
+        function resetProgress() {
+            if(confirm('Reset all progress?')) {
+                localStorage.removeItem('gate_os_v3_progress');
+                location.reload();
+            }
+        }
+
+        init();
+    </script>
+</body>
+</html>
