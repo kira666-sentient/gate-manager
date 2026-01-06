@@ -254,39 +254,6 @@
 
         .sync-icon { margin-left: auto; opacity: 0.5; font-size: 0.8rem; }
         .section-title { margin-bottom: 1.5rem; display: flex; align-items: center; gap: 1rem; }
-
-        .site-footer {
-            background-color: var(--bg-card);
-            border-top: 1px solid var(--border);
-            padding: 0.75rem 2rem;
-            font-size: 0.8rem;
-            color: var(--text-muted);
-            flex-shrink: 0;
-        }
-        
-        .footer-inner {
-            max-width: 1100px;
-            margin: 0 auto;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 0.75rem;
-        }
-        
-        .footer-links a {
-            color: var(--accent-primary);
-            text-decoration: none;
-            font-weight: 600;
-        }
-        
-        .footer-links a:hover {
-            text-decoration: underline;
-        }
-        
-        .sep {
-            margin: 0 0.4rem;
-            color: var(--text-muted);
-        }
         
         /* Mobile */
         @media (max-width: 640px) {
@@ -376,11 +343,6 @@
         @media (max-width: 768px) {
             aside.open .sidebar-footer {
                 display: flex;
-            }
-        
-            /* Hide bottom footer on mobile */
-            .site-footer {
-                display: none;
             }
         }
         
@@ -833,15 +795,5 @@
 
         init();
     </script>
-</body>
-<footer class="site-footer">
-    <div class="footer-inner">
-        <span>Made with ❤️ by <b>Karan Gupta</b></span>
-        <span class="footer-links">
-            <a href="https://github.com/kira666-sentient" target="_blank" rel="noopener">GitHub</a>
-            <span class="sep">•</span>
-            <a href="https://instagram.com/blackhairedkaran" target="_blank" rel="noopener">Instagram</a>
-        </span>
-    </div>
-</footer>    
+</body>   
 </html>
