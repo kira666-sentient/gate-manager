@@ -351,6 +351,38 @@
                 pointer-events: auto;
             }
         }
+        /* Sidebar footer (mobile only) */
+        .sidebar-footer {
+            display: none;
+            margin-top: 1.5rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border);
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+        }
+        
+        .sidebar-footer a {
+            color: var(--accent-primary);
+            text-decoration: none;
+            font-weight: 600;
+        }
+        
+        .sidebar-footer a:hover {
+            text-decoration: underline;
+        }
+        @media (max-width: 768px) {
+            aside.open .sidebar-footer {
+                display: flex;
+            }
+        
+            /* Hide bottom footer on mobile */
+            .site-footer {
+                display: none;
+            }
+        }
         
     </style>
 </head>
@@ -390,6 +422,14 @@
             <button class="nav-btn" onclick="resetProgress()" style="color:var(--accent-danger)">
                 <span>♻️</span> Reset Data
             </button>
+            <div class="sidebar-footer">
+                <span>Made with ❤️ by <b>Karan Gupta</b></span>
+                <span class="footer-links">
+                    <a href="https://github.com/kira666-sentient" target="_blank" rel="noopener">GitHub</a>
+                    <span class="sep">•</span>
+                    <a href="https://instagram.com/blackhairedkaran" target="_blank" rel="noopener">Instagram</a>
+                </span>
+            </div>
         </aside>
 
         <section class="content">
