@@ -297,14 +297,72 @@
             }
         }
 
+        /* ===== Mobile Sidebar Fix ===== */
+        .mobile-menu-btn {
+            display: none;
+            background: var(--bg-hover);
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            font-size: 1.2rem;
+            border-radius: 0.5rem;
+            width: 40px;
+            height: 40px;
+            cursor: pointer;
+        }
+        
+        .mobile-overlay {
+            display: none;
+        }
+        
+        @media (max-width: 768px) {
+            .mobile-menu-btn {
+                display: block;
+            }
+        
+            aside {
+                position: fixed;
+                top: 70px;
+                left: -260px;
+                bottom: 0;
+                z-index: 1000;
+                transition: left 0.3s ease;
+            }
+        
+            aside.open {
+                left: 0;
+            }
+        
+            .mobile-overlay {
+                position: fixed;
+                top: 70px;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0,0,0,0.45);
+                display: block;
+                opacity: 0;
+                pointer-events: none;
+                transition: opacity 0.3s;
+                z-index: 999;
+            }
+        
+            .mobile-overlay.active {
+                opacity: 1;
+                pointer-events: auto;
+            }
+        }
+        
     </style>
 </head>
 
 <body>
     <header>
-        <div class="brand">
-            GATE<span>OS</span>
-            <span class="version">2026</span>
+        <div style="display:flex; align-items:center; gap:0.75rem;">
+            <button class="mobile-menu-btn" onclick="toggleSidebar()">☰</button>
+            <div class="brand">
+                GATE<span>OS</span>
+                <span class="version">2026</span>
+            </div>
         </div>
         <div class="timer-container">
             <div class="timer" id="countdown">00d 00h 00m</div>
@@ -313,6 +371,7 @@
     </header>
 
     <main>
+        <div class="mobile-overlay" onclick="toggleSidebar(true)"></div>
         <aside>
             <button class="nav-btn active" onclick="switchTab('dashboard')">
                 <span>📊</span> Mission Control
@@ -656,6 +715,7 @@
             document.querySelectorAll('.nav-btn').forEach(btn => {
                 if(btn.getAttribute('onclick').includes(id)) btn.classList.add('active');
             });
+            toggleSidebar(true);
         }
 
         function updateStats() {
@@ -714,6 +774,22 @@
                 location.reload();
             }
         }
+
+        function toggleSidebar(forceClose = false) {
+            if (window.innerWidth > 768) return;
+        
+            const sidebar = document.querySelector("aside");
+            const overlay = document.querySelector(".mobile-overlay");
+        
+            if (forceClose) {
+                sidebar.classList.remove("open");
+                overlay.classList.remove("active");
+            } else {
+                sidebar.classList.toggle("open");
+                overlay.classList.toggle("active");
+            }
+        }
+
 
         init();
     </script>
